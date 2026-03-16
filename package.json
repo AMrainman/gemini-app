@@ -20,6 +20,11 @@
       "icon": "icon.png",
       "target": ["nsis"]
     },
+    "nsis": {
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Gemini"
+    },
     "publish": null
   },
   "devDependencies": {
