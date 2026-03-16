@@ -2,16 +2,23 @@
   "name": "gemini-desktop",
   "version": "1.0.0",
   "description": "Gemini Desktop App",
-  "main": "src/main.js",
+  "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win"
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
   },
   "build": {
     "appId": "com.gemini.desktop",
     "productName": "Gemini",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "icon.png",
+      "target": ["dmg", "zip"]
+    },
     "win": {
-      "icon": "src/assets/icon.png"
+      "icon": "icon.png",
+      "target": ["nsis"]
     },
     "publish": null
   },

@@ -8,7 +8,9 @@ function createWindow() {
     width: 1200,
     height: 800,
     autoHideMenuBar: true,
-    icon: path.join(__dirname, '../assets/icon.png'), // 设置应用窗口图标
+    // macOS 通常不需要在这里设置 icon，它会使用打包时指定的 .icns
+    // Windows 和 Linux 会使用这里的 .png
+    icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -17,8 +19,12 @@ function createWindow() {
 
   mainWindow.loadURL('https://gemini.google.com/app');
 
-  mainWindow.on('closed', function () {
-    mainWindow = null;
+  // 隐藏到托盘而不是退出 (macOS 常见行为)
+  mainWindow.on('close', function (event) {
+    if (!app.isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+    }
   });
 }
 
@@ -42,8 +48,18 @@ app.whenReady().then(() => {
   }
 
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    // macOS 点击 dock 图标时恢复窗口
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    } else if (mainWindow) {
+      mainWindow.show();
+    }
   });
+});
+
+// 在退出前设置标志位，允许窗口真正关闭
+app.on('before-quit', () => {
+  app.isQuitting = true;
 });
 
 app.on('window-all-closed', function () {
