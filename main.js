@@ -54,9 +54,10 @@ if (!gotTheLock) {
     // 注册全局快捷键
     const ret = globalShortcut.register('Alt+G', () => {
       if (mainWindow) {
-        if (mainWindow.isVisible()) {
+        if (mainWindow.isVisible() && mainWindow.isFocused()) {
           mainWindow.hide();
         } else {
+          if (mainWindow.isMinimized()) mainWindow.restore();
           mainWindow.show();
           mainWindow.focus();
         }

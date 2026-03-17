@@ -11,6 +11,7 @@
   "build": {
     "appId": "com.gemini.desktop",
     "productName": "Gemini",
+    "publish": null,
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "icon.png",
@@ -24,8 +25,7 @@
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
       "shortcutName": "Gemini"
-    },
-    "publish": null
+    }
   },
   "devDependencies": {
     "electron": "^29.0.0",
