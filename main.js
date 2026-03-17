@@ -34,6 +34,9 @@ if (!gotTheLock) {
       }
     });
 
+    // 移除默认菜单栏，彻底禁止 Alt 键唤出菜单
+    mainWindow.setMenu(null);
+
     mainWindow.loadURL('https://gemini.google.com/app');
 
     // 隐藏到托盘而不是退出 (macOS 常见行为)
