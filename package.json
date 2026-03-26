@@ -5,8 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac"
+    "build": "electron-builder"
   },
   "build": {
     "appId": "com.gemini.desktop",
@@ -24,7 +23,8 @@
     "nsis": {
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "Gemini"
+      "shortcutName": "Gemini",
+      "include": "installer.nsh"
     }
   },
   "devDependencies": {

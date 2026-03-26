@@ -37,15 +37,16 @@ if (!gotTheLock) {
     // 移除默认菜单栏，彻底禁止 Alt 键唤出菜单
     mainWindow.setMenu(null);
 
-    mainWindow.loadURL('https://gemini.google.com/app');
-
-    // 隐藏到托盘而不是退出 (macOS 常见行为)
-    mainWindow.on('close', function (event) {
-      if (!app.isQuitting) {
+    // 注册窗口内快捷键：Ctrl+R 刷新页面
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'r' && (input.control || input.meta)) {
+        mainWindow.webContents.reload();
         event.preventDefault();
-        mainWindow.hide();
       }
     });
+
+    mainWindow.loadURL('https://gemini.google.com/app');
+    // mainWindow.loadURL('https://claude.ai/');
   }
 
   app.whenReady().then(() => {
