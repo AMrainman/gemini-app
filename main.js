@@ -53,7 +53,7 @@ if (!gotTheLock) {
     createWindow();
 
     // 注册全局快捷键
-    const ret = globalShortcut.register('Alt+G', () => {
+    const ret = globalShortcut.register('CommandOrControl+G', () => {
       if (mainWindow) {
         if (mainWindow.isVisible() && mainWindow.isFocused()) {
           mainWindow.hide();
