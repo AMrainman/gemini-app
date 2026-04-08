@@ -13,7 +13,7 @@ if (!gotTheLock) {
   // 监听第二个实例的启动事件
   app.on('second-instance', (event, commandLine, workingDirectory) => {
     // 当用户再次点击快捷方式时，恢复并聚焦到已有的窗口
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       if (!mainWindow.isVisible()) mainWindow.show();
       mainWindow.focus();
@@ -54,7 +54,7 @@ if (!gotTheLock) {
 
     // 注册全局快捷键
     const ret = globalShortcut.register('CommandOrControl+G', () => {
-      if (mainWindow) {
+      if (mainWindow && !mainWindow.isDestroyed()) {
         if (mainWindow.isVisible() && mainWindow.isFocused()) {
           mainWindow.hide();
         } else {
@@ -73,7 +73,7 @@ if (!gotTheLock) {
       // macOS 点击 dock 图标时恢复窗口
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
-      } else if (mainWindow) {
+      } else if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.show();
       }
     });
