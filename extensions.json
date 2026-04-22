@@ -1,0 +1,9 @@
+{
+  "_comment": "配置要加载的 Chrome 扩展。支持两种格式：1. 对象 { id: '扩展ID', enabled: true } 自动从 Chrome 用户数据目录查找；2. 字符串 '/绝对路径/到/已解压扩展目录'。注意：Electron 对 Chrome 扩展支持有限，MV3 扩展可能部分功能不可用。",
+  "extensions": [
+    {
+      "id": "iifacdnjakkhjjiengaffnegbndgingi",
+      "enabled": true
+    }
+  ]
+}
