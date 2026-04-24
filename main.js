@@ -167,6 +167,7 @@ if (!gotTheLock) {
       width: 1200,
       height: 800,
       autoHideMenuBar: true,
+      show: false,
       // macOS 通常不需要在这里设置 icon，它会使用打包时指定的 .icns
       // Windows 和 Linux 会使用这里的 .png
       icon: path.join(__dirname, 'icon.png'),
@@ -179,16 +180,25 @@ if (!gotTheLock) {
     // 移除默认菜单栏，彻底禁止 Alt 键唤出菜单
     mainWindow.setMenu(null);
 
-    // 注册窗口内快捷键：Ctrl+R 刷新页面
+    // 注册窗口内快捷键：Ctrl+R 刷新页面，拦截 Command+W / Ctrl+W 防止关闭窗口
     mainWindow.webContents.on('before-input-event', (event, input) => {
       if (input.key === 'r' && (input.control || input.meta)) {
         mainWindow.webContents.reload();
+        event.preventDefault();
+      }
+      if (input.key === 'w' && (input.control || input.meta)) {
         event.preventDefault();
       }
     });
 
     mainWindow.loadURL('https://gemini.google.com/app');
     // mainWindow.loadURL('https://claude.ai/');
+
+    // 窗口就绪后最大化再显示，避免出现先小窗再最大化的闪烁
+    mainWindow.once('ready-to-show', () => {
+      mainWindow.maximize();
+      mainWindow.show();
+    });
   }
 
   app.whenReady().then(async () => {
