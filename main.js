@@ -4,6 +4,52 @@ const fs = require('fs');
 const os = require('os');
 
 let mainWindow;
+const appUrls = ['https://gemini.google.com/app', 'https://claude.ai'];
+const defaultAppUrl = 'https://claude.ai';
+
+function isSupportedAppUrl(url) {
+  return appUrls.some((appUrl) => url.startsWith(appUrl));
+}
+
+function getLastOpenedPageCachePath() {
+  return path.join(app.getPath('userData'), 'last-opened-page.json');
+}
+
+function getCachedAppUrl() {
+  try {
+    const cachePath = getLastOpenedPageCachePath();
+    if (!fs.existsSync(cachePath)) return defaultAppUrl;
+
+    const cache = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
+    return typeof cache.lastOpenedUrl === 'string' && isSupportedAppUrl(cache.lastOpenedUrl)
+      ? cache.lastOpenedUrl
+      : defaultAppUrl;
+  } catch {
+    return defaultAppUrl;
+  }
+}
+
+function cacheAppUrl(url) {
+  if (!isSupportedAppUrl(url)) return;
+
+  try {
+    const cachePath = getLastOpenedPageCachePath();
+    fs.writeFileSync(cachePath, JSON.stringify({ lastOpenedUrl: url }), 'utf-8');
+  } catch (err) {
+    console.error('写入页面缓存失败:', err.message);
+  }
+}
+
+function getCurrentAppUrlIndex(window) {
+  const currentUrl = window.webContents.getURL();
+  return appUrls.findIndex((url) => currentUrl.startsWith(url));
+}
+
+function switchAppUrl(window) {
+  const currentIndex = getCurrentAppUrlIndex(window);
+  const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % appUrls.length;
+  window.loadURL(appUrls[nextIndex]);
+}
 
 // 检查是否已经有一个实例在运行 (单例锁)
 const gotTheLock = app.requestSingleInstanceLock();
@@ -163,6 +209,8 @@ if (!gotTheLock) {
   }
 
   function createWindow() {
+    const startupUrl = getCachedAppUrl();
+
     mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
@@ -173,8 +221,8 @@ if (!gotTheLock) {
       icon: path.join(__dirname, 'icon.png'),
       webPreferences: {
         nodeIntegration: false,
-        contextIsolation: true
-      }
+        contextIsolation: true,
+      },
     });
 
     // 移除默认菜单栏，彻底禁止 Alt 键唤出菜单
@@ -186,13 +234,24 @@ if (!gotTheLock) {
         mainWindow.webContents.reload();
         event.preventDefault();
       }
+      if (input.key === 'Tab' && input.shift && mainWindow.isFocused()) {
+        switchAppUrl(mainWindow);
+        event.preventDefault();
+      }
       if (input.key === 'w' && (input.control || input.meta)) {
         event.preventDefault();
       }
     });
 
-    mainWindow.loadURL('https://gemini.google.com/app');
-    // mainWindow.loadURL('https://claude.ai/');
+    mainWindow.webContents.on('did-navigate', (event, url) => {
+      cacheAppUrl(url);
+    });
+
+    mainWindow.webContents.on('did-navigate-in-page', (event, url) => {
+      cacheAppUrl(url);
+    });
+
+    mainWindow.loadURL(startupUrl);
 
     // 窗口就绪后最大化再显示，避免出现先小窗再最大化的闪烁
     mainWindow.once('ready-to-show', () => {
@@ -207,7 +266,8 @@ if (!gotTheLock) {
     createWindow();
 
     // 注册全局快捷键
-    const ret = globalShortcut.register('CommandOrControl+G', () => {
+    const keyCombo = process.platform === 'win32' ? 'ALT+G' : 'CommandOrControl+G';
+    const ret = globalShortcut.register(keyCombo, () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         if (mainWindow.isVisible() && mainWindow.isFocused()) {
           mainWindow.hide();
