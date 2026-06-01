@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, session } = require('electron');
+const { app, BrowserWindow, globalShortcut, session, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -249,6 +249,20 @@ if (!gotTheLock) {
 
     mainWindow.webContents.on('did-navigate-in-page', (event, url) => {
       cacheAppUrl(url);
+    });
+
+    // 拦截页面内 target="_blank" 或 window.open() 的链接，在系统默认浏览器中打开
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    });
+
+    // 拦截页面内普通导航：非应用 URL 用外部浏览器打开，禁止在应用内跳转
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+      if (!isSupportedAppUrl(url)) {
+        event.preventDefault();
+        shell.openExternal(url);
+      }
     });
 
     mainWindow.loadURL(startupUrl);
