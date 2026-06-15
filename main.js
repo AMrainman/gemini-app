@@ -4,8 +4,8 @@ const fs = require('fs');
 const os = require('os');
 
 let mainWindow;
-const appUrls = ['https://gemini.google.com/app', 'https://claude.ai'];
-const defaultAppUrl = 'https://claude.ai';
+const appUrls = ['https://gemini.google.com/app', 'https://chatgpt.com/'];
+const defaultAppUrl = 'https://gemini.google.com/app';
 
 function isSupportedAppUrl(url) {
   return appUrls.some((appUrl) => url.startsWith(appUrl));
