@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, session, shell } = require('electron');
+const { app, BrowserWindow, globalShortcut, session, shell, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -242,6 +242,10 @@ if (!gotTheLock) {
       if (input.key === 'w' && (input.control || input.meta)) {
         event.preventDefault();
       }
+      if (input.key === 'f' && (input.control || input.meta)) {
+        mainWindow.webContents.send('search:toggle');
+        event.preventDefault();
+      }
     });
 
     mainWindow.webContents.on('did-navigate', (event, url) => {
@@ -279,6 +283,27 @@ if (!gotTheLock) {
     // 先加载扩展，再创建窗口，确保 content scripts 在页面加载前注入
     await loadAllExtensions();
     createWindow();
+
+    // 注册搜索 IPC
+    ipcMain.handle('search:find', async (event, { text, options }) => {
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        return { matches: 0, activeMatchOrdinal: 0 };
+      }
+      return new Promise((resolve) => {
+        const onFound = (event, result) => {
+          mainWindow.webContents.off('found-in-page', onFound);
+          resolve(result);
+        };
+        mainWindow.webContents.on('found-in-page', onFound);
+        mainWindow.webContents.findInPage(text, options);
+      });
+    });
+
+    ipcMain.on('search:stop', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.stopFindInPage('clearSelection');
+      }
+    });
 
     // 注册全局快捷键
     const keyCombo = process.platform === 'win32' ? 'ALT+G' : 'CommandOrControl+G';
