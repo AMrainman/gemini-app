@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "test": "node --test tests/search/*.test.js"
   },
   "build": {
     "appId": "com.gemini.desktop",
@@ -14,11 +15,16 @@
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "icon.png",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "icon": "icon.png",
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "nsis": {
       "createDesktopShortcut": "always",
@@ -29,6 +35,7 @@
   },
   "devDependencies": {
     "electron": "^29.0.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "jsdom": "^29.1.1"
   }
 }

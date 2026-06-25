@@ -222,6 +222,7 @@ if (!gotTheLock) {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        preload: path.join(__dirname, 'src', 'preload.js'),
       },
     });
 
