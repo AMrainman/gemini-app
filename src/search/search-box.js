@@ -188,7 +188,24 @@ class SearchBox {
     const selectionEnd = this.input.selectionEnd;
     const selectionDirection = this.input.selectionDirection;
 
+    // native 搜索无法排除搜索框自身，临时从 DOM 移除再恢复
+    const isNative = this.controller.mode === 'native';
+    const parent = isNative && this.element.parentNode ? this.element.parentNode : null;
+    let nextSibling = null;
+    if (parent) {
+      nextSibling = this.element.nextSibling;
+      parent.removeChild(this.element);
+    }
+
     const result = await this.controller.find(text);
+
+    if (parent) {
+      if (nextSibling) {
+        parent.insertBefore(this.element, nextSibling);
+      } else {
+        parent.appendChild(this.element);
+      }
+    }
 
     // 恢复焦点与选区
     if (inputWasFocused) {
