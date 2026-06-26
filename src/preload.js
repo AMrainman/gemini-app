@@ -1,3 +1,5 @@
+console.log('[preload] preload.js loaded');
+
 const { contextBridge, ipcRenderer } = require('electron');
 const { initSearch } = require('./search/index');
 
@@ -17,8 +19,15 @@ contextBridge.exposeInMainWorld('electronSearch', {
   onToggle: (callback) => on('search:toggle', callback),
 });
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initSearch);
-} else {
+console.log('[preload] electronSearch exposed');
+
+function init() {
+  console.log('[preload] DOM ready, initializing search');
   initSearch();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }

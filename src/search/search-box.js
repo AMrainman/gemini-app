@@ -198,6 +198,7 @@ class SearchBox {
   }
 
   toggle() {
+    console.log('[search-box] toggle called, visible:', this.visible);
     if (this.visible) {
       this.hide();
     } else {
@@ -206,6 +207,7 @@ class SearchBox {
   }
 
   show() {
+    console.log('[search-box] show called');
     this.render();
     document.body.appendChild(this.element);
     this.visible = true;
