@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 
 let mainWindow;
+let searchWindow;
 const appUrls = ['https://gemini.google.com/app', 'https://chatgpt.com/'];
 const defaultAppUrl = 'https://gemini.google.com/app';
 
@@ -233,7 +234,7 @@ if (!gotTheLock) {
     // 注册窗口内快捷键：Ctrl+R 刷新页面，Ctrl/Cmd+F 打开搜索，拦截 Command+W / Ctrl+W 防止关闭窗口
     mainWindow.webContents.on('before-input-event', (event, input) => {
       if (input.key === 'f' && (input.control || input.meta)) {
-        mainWindow.webContents.send('search:toggle');
+        showSearchWindow();
         event.preventDefault();
       }
       if (input.key === 'r' && (input.control || input.meta)) {
@@ -280,31 +281,180 @@ if (!gotTheLock) {
     });
   }
 
+  function isJsSearchMode(options) {
+    return options && (options.wholeWord || options.regex);
+  }
+
+  function createSearchWindow() {
+    if (searchWindow && !searchWindow.isDestroyed()) {
+      return searchWindow;
+    }
+
+    searchWindow = new BrowserWindow({
+      width: 400,
+      height: 60,
+      show: false,
+      frame: false,
+      transparent: true,
+      resizable: false,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      focusable: true,
+      hasShadow: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: false,
+        preload: path.join(__dirname, 'src', 'search', 'search-window-preload.js'),
+      },
+    });
+
+    searchWindow.loadFile(path.join(__dirname, 'src', 'search', 'search-window.html'));
+
+    searchWindow.on('closed', () => {
+      searchWindow = null;
+      stopSearch();
+    });
+
+    return searchWindow;
+  }
+
+  function showSearchWindow() {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+
+    const win = createSearchWindow();
+    positionSearchWindow(win);
+    win.show();
+    win.focus();
+  }
+
+  function hideSearchWindow() {
+    if (searchWindow && !searchWindow.isDestroyed()) {
+      searchWindow.hide();
+    }
+    stopSearch();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.focus();
+    }
+  }
+
+  function stopSearch() {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.stopFindInPage('clearSelection');
+    }
+  }
+
+  function positionSearchWindow(win) {
+    if (!mainWindow || mainWindow.isDestroyed() || !win || win.isDestroyed()) return;
+    const bounds = mainWindow.getContentBounds();
+    const searchBounds = win.getBounds();
+    win.setBounds({
+      x: bounds.x + bounds.width - searchBounds.width - 12,
+      y: bounds.y + 12,
+      width: searchBounds.width,
+      height: searchBounds.height,
+    });
+  }
+
+  function syncSearchWindowPosition() {
+    if (searchWindow && !searchWindow.isDestroyed() && searchWindow.isVisible()) {
+      positionSearchWindow(searchWindow);
+    }
+  }
+
+  function sendSearchResult(result) {
+    if (searchWindow && !searchWindow.isDestroyed()) {
+      searchWindow.webContents.send('search-window:result', result);
+    }
+  }
+
+  let pendingJsSearchId = 0;
+  const pendingJsSearchResolves = new Map();
+
+  function runJsSearchCommand(type, text, options) {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      sendSearchResult({ total: 0, current: 0, valid: true });
+      return;
+    }
+    const id = ++pendingJsSearchId;
+    pendingJsSearchResolves.set(id, (result) => sendSearchResult(result));
+    mainWindow.webContents.send('search:js-command', { id, type, text, options });
+  }
+
   app.whenReady().then(async () => {
     // 先加载扩展，再创建窗口，确保 content scripts 在页面加载前注入
     await loadAllExtensions();
     createWindow();
 
-    // 注册搜索 IPC
-    ipcMain.handle('search:find', async (event, { text, options }) => {
-      if (!mainWindow || mainWindow.isDestroyed()) {
-        return { matches: 0, activeMatchOrdinal: 0 };
+    // 监听 native 搜索结果并回传给搜索窗口
+    mainWindow.webContents.on('found-in-page', (event, result) => {
+      if (result.finalUpdate) {
+        sendSearchResult({
+          total: result.matches,
+          current: result.activeMatchOrdinal,
+          valid: true,
+        });
       }
-      return new Promise((resolve) => {
-        const onFound = (event, result) => {
-          mainWindow.webContents.off('found-in-page', onFound);
-          resolve(result);
-        };
-        mainWindow.webContents.on('found-in-page', onFound);
-        mainWindow.webContents.findInPage(text, options);
-      });
     });
 
-    ipcMain.on('search:stop', () => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.stopFindInPage('clearSelection');
+    // 搜索窗口命令入口
+    ipcMain.on('search-window:command', (event, { type, text, options }) => {
+      if (!mainWindow || mainWindow.isDestroyed()) {
+        sendSearchResult({ total: 0, current: 0, valid: true });
+        return;
+      }
+
+      if (isJsSearchMode(options)) {
+        runJsSearchCommand(type, text, options);
+        return;
+      }
+
+      // native 搜索
+      if (type === 'find') {
+        mainWindow.webContents.findInPage(text, {
+          forward: true,
+          findNext: false,
+          matchCase: options.caseSensitive || false,
+        });
+      } else if (type === 'next') {
+        mainWindow.webContents.findInPage(text, {
+          forward: true,
+          findNext: true,
+          matchCase: options.caseSensitive || false,
+        });
+      } else if (type === 'previous') {
+        mainWindow.webContents.findInPage(text, {
+          forward: false,
+          findNext: true,
+          matchCase: options.caseSensitive || false,
+        });
+      } else if (type === 'stop') {
+        stopSearch();
+        sendSearchResult({ total: 0, current: 0, valid: true });
       }
     });
+
+    ipcMain.on('search:js-result', (event, { id, result }) => {
+      const resolve = pendingJsSearchResolves.get(id);
+      if (resolve) {
+        resolve(result);
+        pendingJsSearchResolves.delete(id);
+      }
+    });
+
+    ipcMain.on('search-window:hide', () => {
+      hideSearchWindow();
+    });
+
+    // 主窗口位置/状态变化时同步搜索窗口
+    mainWindow.on('move', syncSearchWindowPosition);
+    mainWindow.on('resize', syncSearchWindowPosition);
+    mainWindow.on('maximize', syncSearchWindowPosition);
+    mainWindow.on('unmaximize', syncSearchWindowPosition);
+    mainWindow.on('minimize', hideSearchWindow);
+    mainWindow.on('hide', hideSearchWindow);
+    mainWindow.on('restore', syncSearchWindowPosition);
+    mainWindow.on('show', syncSearchWindowPosition);
 
     // 注册全局快捷键
     const keyCombo = process.platform === 'win32' ? 'ALT+G' : 'CommandOrControl+G';

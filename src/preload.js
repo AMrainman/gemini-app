@@ -1,27 +1,53 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const path = require('path');
-const { initSearch } = require(path.join(__dirname, 'search', 'index'));
+const { JsSearch } = require('./search/js-search');
 
 /**
- * 包装 IPC 监听，去除事件对象，只把数据传给回调
+ * 主窗口 preload
+ * 不再注入页面内搜索框，只保留 JS 搜索执行能力供独立搜索窗口调用
  */
-function on(channel, callback) {
-  const wrapped = (event, ...args) => callback(...args);
-  ipcRenderer.on(channel, wrapped);
+
+let jsSearchInstance = null;
+
+function getJsSearch() {
+  if (!jsSearchInstance) {
+    jsSearchInstance = new JsSearch(document, window);
+  }
+  return jsSearchInstance;
 }
 
-const searchIpc = {
-  find: (text, options) => ipcRenderer.invoke('search:find', { text, options }),
-  stop: () => ipcRenderer.send('search:stop'),
-  navigate: (direction) => ipcRenderer.send('search:navigate', direction),
-  onFound: (callback) => on('search:found', callback),
-  onToggle: (callback) => on('search:toggle', callback),
-};
+ipcRenderer.on('search:js-command', (event, { id, type, text, options }) => {
+  const jsSearch = getJsSearch();
+  let result;
 
-contextBridge.exposeInMainWorld('electronSearch', searchIpc);
+  try {
+    if (type === 'find') {
+      result = jsSearch.find(text, options);
+    } else if (type === 'next') {
+      jsSearch.next();
+      result = { total: jsSearch.matches.length, current: jsSearch.current, valid: true };
+    } else if (type === 'previous') {
+      jsSearch.previous();
+      result = { total: jsSearch.matches.length, current: jsSearch.current, valid: true };
+    } else if (type === 'stop') {
+      jsSearch.clear();
+      result = { total: 0, current: 0, valid: true };
+    } else {
+      result = { total: 0, current: 0, valid: false, message: '未知命令' };
+    }
+  } catch (err) {
+    result = { total: 0, current: 0, valid: false, message: err.message };
+  }
+
+  ipcRenderer.send('search:js-result', { id, result });
+});
+
+// 保留向后兼容的 API 对象，避免页面报错（当前已不依赖它）
+contextBridge.exposeInMainWorld('electronSearch', {
+  onToggle: () => {},
+});
 
 function init() {
-  initSearch(searchIpc);
+  // 页面内搜索框已改为独立 BrowserWindow，preload 不再初始化 DOM 搜索框
 }
 
 if (document.readyState === 'loading') {
