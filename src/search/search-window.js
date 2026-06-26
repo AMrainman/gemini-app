@@ -7,8 +7,13 @@ const api = window.searchWindowApi;
 
 const input = document.getElementById('search-input');
 const countLabel = document.getElementById('search-count');
-const optionsPanel = document.getElementById('search-options');
 const errorLabel = document.getElementById('search-error');
+
+const optionButtons = {
+  caseSensitive: document.getElementById('btn-case-sensitive'),
+  wholeWord: document.getElementById('btn-whole-word'),
+  regex: document.getElementById('btn-regex'),
+};
 
 const options = {
   caseSensitive: false,
@@ -36,6 +41,19 @@ function getOptions() {
   return { ...options };
 }
 
+function syncOptionButtons() {
+  for (const [key, button] of Object.entries(optionButtons)) {
+    button.classList.toggle('active', options[key]);
+  }
+}
+
+function toggleOption(key) {
+  if (!(key in options)) return;
+  options[key] = !options[key];
+  syncOptionButtons();
+  doSearch();
+}
+
 async function doSearch() {
   const text = input.value;
   lastText = text;
@@ -58,11 +76,6 @@ async function findNext() {
 async function findPrevious() {
   if (!lastText) return;
   await api.previous(lastText, getOptions());
-}
-
-function toggleOptions() {
-  const isVisible = optionsPanel.style.display !== 'none';
-  optionsPanel.style.display = isVisible ? 'none' : 'block';
 }
 
 input.addEventListener('compositionstart', () => {
@@ -94,17 +107,11 @@ input.addEventListener('keydown', (e) => {
   }
 });
 
-document.getElementById('btn-next').addEventListener('click', findNext);
-document.getElementById('btn-prev').addEventListener('click', findPrevious);
-document.getElementById('btn-options').addEventListener('click', toggleOptions);
-document.getElementById('btn-close').addEventListener('click', () => api.hide());
+for (const [key, button] of Object.entries(optionButtons)) {
+  button.addEventListener('click', () => toggleOption(key));
+}
 
-document.querySelectorAll('[data-option]').forEach((checkbox) => {
-  checkbox.addEventListener('change', (e) => {
-    options[e.target.dataset.option] = e.target.checked;
-    doSearch();
-  });
-});
+document.getElementById('btn-close').addEventListener('click', () => api.hide());
 
 api.onResult((result) => {
   if (!result.valid) {
@@ -121,5 +128,6 @@ window.addEventListener('focus', () => {
   input.select();
 });
 
-// 初始化时聚焦输入框
+// 初始化按钮状态与焦点
+syncOptionButtons();
 input.focus();

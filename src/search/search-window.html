@@ -23,7 +23,6 @@
       gap: 6px;
       padding: 6px 8px;
       background: #ffffff;
-      border: 1px solid #dadce0;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
@@ -56,32 +55,16 @@
       color: #5f6368;
       font-size: 13px;
       line-height: 1;
+      user-select: none;
     }
 
     .electron-search-btn:hover {
       background: rgba(128, 128, 128, 0.15);
     }
 
-    .electron-search-options {
-      display: none;
-      position: absolute;
-      top: 48px;
-      left: 8px;
-      right: 8px;
-      padding: 8px;
-      background: #ffffff;
-      border: 1px solid #dadce0;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .electron-search-options label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 0;
-      color: #202124;
-      cursor: pointer;
+    .electron-search-btn.active {
+      background: #0078d4;
+      color: #ffffff;
     }
 
     .electron-search-error {
@@ -98,16 +81,10 @@
 <body>
   <input type="text" id="search-input" class="electron-search-input" placeholder="搜索">
   <span id="search-count" class="electron-search-count">0/0</span>
-  <button id="btn-prev" class="electron-search-btn" title="上一个 (↑)">↑</button>
-  <button id="btn-next" class="electron-search-btn" title="下一个 (Enter)">↓</button>
-  <button id="btn-options" class="electron-search-btn" title="选项">⚙</button>
+  <button id="btn-case-sensitive" class="electron-search-btn" title="区分大小写 (Aa)">Aa</button>
+  <button id="btn-whole-word" class="electron-search-btn" title="全字匹配 (\\b)">\\b</button>
+  <button id="btn-regex" class="electron-search-btn" title="正则表达式 (.*)">.*</button>
   <button id="btn-close" class="electron-search-btn" title="关闭 (Esc)">✕</button>
-
-  <div id="search-options" class="electron-search-options">
-    <label><input type="checkbox" data-option="caseSensitive"> 区分大小写</label>
-    <label><input type="checkbox" data-option="wholeWord"> 全字匹配</label>
-    <label><input type="checkbox" data-option="regex"> 正则表达式</label>
-  </div>
 
   <div id="search-error" class="electron-search-error"></div>
 

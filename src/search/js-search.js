@@ -159,8 +159,8 @@ class JsSearch {
       const middle = node.splitText(start);
       const span = this.document.createElement('span');
       span.className = this.highlightClass;
-      // 非当前匹配使用浅色，当前匹配在 updateActiveHighlight 中设为深色
-      span.style.backgroundColor = '#ffb74d';
+      // 未选中匹配使用淡蓝色，当前匹配在 updateActiveHighlight 中设为亮黄色
+      span.style.backgroundColor = '#90caf9';
       span.style.color = '#000';
       middle.parentNode.replaceChild(span, middle);
       span.appendChild(middle);
@@ -178,7 +178,7 @@ class JsSearch {
     for (let i = 0; i < this.matches.length; i++) {
       const match = this.matches[i];
       if (match.element) {
-        match.element.style.backgroundColor = (i + 1 === this.current) ? '#ff5722' : '#ffb74d';
+        match.element.style.backgroundColor = (i + 1 === this.current) ? '#ffeb3b' : '#90caf9';
       }
     }
   }
