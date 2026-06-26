@@ -265,6 +265,14 @@ class SearchBox {
 
     this.input.focus();
     this.input.select();
+
+    // debug: 3 秒后自动搜索页面上常见的词
+    setTimeout(() => {
+      if (this.input) {
+        this.input.value = 'Gemini';
+        this.input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }, 3000);
   }
 
   hide() {
