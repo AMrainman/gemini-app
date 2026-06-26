@@ -24,9 +24,9 @@ class SearchController {
   }
 
   get mode() {
-    const opts = this.options.get();
-    if (opts.wholeWord || opts.regex) return 'js';
-    return 'native';
+    // 统一使用 JS 搜索，避免 native findInPage 无法排除搜索框自身内容
+    // 以及无法自定义高亮颜色的问题
+    return 'js';
   }
 
   async find(text) {

@@ -20,18 +20,18 @@ function initSearch(ipc) {
 
   // 主进程快捷键触发的入口
   ipc.onToggle(() => {
-    searchBox.toggle();
+    searchBox.show();
   });
 
   // 兜底：在渲染进程捕获快捷键（capture phase，优先于页面 JS 处理）
   document.addEventListener(
     'keydown',
     (event) => {
-      // 全局快捷键：显示/隐藏搜索框
+      // 全局快捷键：唤起搜索框，只做显示不做隐藏
       if (event.key === 'f' && (event.metaKey || event.ctrlKey) && !event.repeat) {
         event.preventDefault();
         event.stopPropagation();
-        searchBox.toggle();
+        searchBox.show();
         return;
       }
 

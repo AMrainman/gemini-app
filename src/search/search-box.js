@@ -188,14 +188,7 @@ class SearchBox {
     const selectionEnd = this.input.selectionEnd;
     const selectionDirection = this.input.selectionDirection;
 
-    // 临时隐藏搜索框，避免 native / JS 搜索把搜索框自身内容算入结果
-    const originalDisplay = this.element.style.display;
-    this.element.style.display = 'none';
-
     const result = await this.controller.find(text);
-
-    // 恢复搜索框显示
-    this.element.style.display = originalDisplay;
 
     // 恢复焦点与选区
     if (inputWasFocused) {
@@ -287,13 +280,19 @@ class SearchBox {
   show() {
     this.render();
     const parent = document.body || document.documentElement;
-    parent.appendChild(this.element);
-    this.visible = true;
+    const isInDom = this.element && this.element.parentNode && this.element.parentNode.isConnected;
 
-    const selection = window.getSelection().toString();
-    if (selection) {
-      this.input.value = selection;
-      this.search();
+    if (!isInDom) {
+      parent.appendChild(this.element);
+      this.visible = true;
+
+      const selection = window.getSelection().toString();
+      if (selection) {
+        this.input.value = selection;
+        this.search();
+      }
+    } else {
+      this.visible = true;
     }
 
     this.input.focus();
