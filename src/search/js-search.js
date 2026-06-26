@@ -159,7 +159,7 @@ class JsSearch {
       const middle = node.splitText(start);
       const span = this.document.createElement('span');
       span.className = this.highlightClass;
-      // 默认非当前匹配使用淡色，当前匹配在 updateActiveHighlight 中设为亮色
+      // 非当前匹配使用浅色，当前匹配在 updateActiveHighlight 中设为深色
       span.style.backgroundColor = '#ffb74d';
       span.style.color = '#000';
       middle.parentNode.replaceChild(span, middle);

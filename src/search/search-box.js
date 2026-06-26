@@ -168,8 +168,7 @@ class SearchBox {
   }
 
   onInput() {
-    if (this.throttleTimer) clearTimeout(this.throttleTimer);
-    this.throttleTimer = setTimeout(() => this.search(), 100);
+    this.search();
   }
 
   async search() {
@@ -182,14 +181,29 @@ class SearchBox {
       return;
     }
 
-    // 搜索前临时清空输入框，避免搜索框自身内容被计入结果
-    const originalValue = this.input.value;
-    this.input.value = '';
+    // 保存焦点与选区，避免搜索后丢失输入状态
+    const activeElement = document.activeElement;
+    const inputWasFocused = activeElement === this.input;
+    const selectionStart = this.input.selectionStart;
+    const selectionEnd = this.input.selectionEnd;
+    const selectionDirection = this.input.selectionDirection;
+
+    // 临时隐藏搜索框，避免 native / JS 搜索把搜索框自身内容算入结果
+    const originalDisplay = this.element.style.display;
+    this.element.style.display = 'none';
 
     const result = await this.controller.find(text);
 
-    // 恢复输入框内容
-    this.input.value = originalValue;
+    // 恢复搜索框显示
+    this.element.style.display = originalDisplay;
+
+    // 恢复焦点与选区
+    if (inputWasFocused) {
+      this.input.focus();
+      this.input.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+    } else if (activeElement && activeElement.focus && activeElement !== this.input) {
+      activeElement.focus();
+    }
 
     if (!result.valid) {
       this.showError(result.message);

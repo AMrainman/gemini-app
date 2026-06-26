@@ -27,15 +27,45 @@ function initSearch(ipc) {
   document.addEventListener(
     'keydown',
     (event) => {
+      // 全局快捷键：显示/隐藏搜索框
       if (event.key === 'f' && (event.metaKey || event.ctrlKey) && !event.repeat) {
         event.preventDefault();
         event.stopPropagation();
         searchBox.toggle();
+        return;
       }
-      if (event.key === 'Escape' && searchBox.visible) {
+
+      // 搜索框内部的事件由搜索框自己处理，避免阻止输入框的 Enter/Arrow/Escape
+      if (searchBox.element && searchBox.element.contains(event.target)) {
+        return;
+      }
+
+      if (!searchBox.visible) return;
+
+      if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
         searchBox.hide();
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.shiftKey) searchBox.findPrevious();
+        else searchBox.findNext();
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        event.stopPropagation();
+        searchBox.findPrevious();
+        return;
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        event.stopPropagation();
+        searchBox.findNext();
+        return;
       }
     },
     true
