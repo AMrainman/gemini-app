@@ -70,7 +70,6 @@ class JsSearch {
   collectAndHighlightMatches(regex) {
     const matches = [];
     const nodes = this.collectTextNodes();
-    console.log('[js-search] collected text nodes:', nodes.length);
 
     for (const node of nodes) {
       const text = node.textContent;
@@ -94,7 +93,6 @@ class JsSearch {
 
     // 收集 input/textarea 的可见值
     const inputs = this.document.querySelectorAll('input, textarea');
-    console.log('[js-search] inputs found:', inputs.length);
     for (const input of inputs) {
       if (!this.isVisible(input)) continue;
       const value = input.value || input.textContent || '';
@@ -111,7 +109,6 @@ class JsSearch {
       }
     }
 
-    console.log('[js-search] total matches:', matches.length);
     return matches;
   }
 

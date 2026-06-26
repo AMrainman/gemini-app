@@ -1,11 +1,11 @@
 /**
  * 主进程 findInPage 的渲染进程桥接
- * 通过 IPC 调用主进程的 webContents.findInPage
+ * 通过 searchIpc.find / searchIpc.stop 调用主进程能力
  */
 
 class NativeSearch {
-  constructor(ipc) {
-    this.ipc = ipc;
+  constructor(searchIpc) {
+    this.searchIpc = searchIpc;
     this.current = 0;
     this.total = 0;
     this.pendingText = null;
@@ -16,47 +16,31 @@ class NativeSearch {
     this.current = 0;
     this.total = 0;
 
-    console.log('[native-search] invoking IPC find, text:', text);
-    return this.ipc.invoke('search:find', {
-      text,
-      options: {
-        forward: true,
-        findNext: false,
-        matchCase: options.caseSensitive || false,
-      },
-    }).then((result) => {
-      console.log('[native-search] IPC result:', result);
-      return result;
-    }).catch((err) => {
-      console.error('[native-search] IPC error:', err);
-      return { matches: 0, activeMatchOrdinal: 0 };
+    return this.searchIpc.find(text, {
+      forward: true,
+      findNext: false,
+      matchCase: options.caseSensitive || false,
     });
   }
 
   next() {
-    return this.ipc.invoke('search:find', {
-      text: this.pendingText,
-      options: {
-        forward: true,
-        findNext: true,
-        matchCase: false, // 由主进程根据当前选项决定
-      },
+    return this.searchIpc.find(this.pendingText, {
+      forward: true,
+      findNext: true,
+      matchCase: false, // 由主进程根据当前选项决定
     });
   }
 
   previous() {
-    return this.ipc.invoke('search:find', {
-      text: this.pendingText,
-      options: {
-        forward: false,
-        findNext: true,
-        matchCase: false,
-      },
+    return this.searchIpc.find(this.pendingText, {
+      forward: false,
+      findNext: true,
+      matchCase: false,
     });
   }
 
   stop() {
-    this.ipc.send('search:stop');
+    this.searchIpc.stop();
     this.current = 0;
     this.total = 0;
   }
