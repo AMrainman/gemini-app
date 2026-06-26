@@ -55,6 +55,7 @@ class JsSearch {
 
     this.matches = this.collectAndHighlightMatches(regex);
     this.current = this.matches.length > 0 ? 1 : 0;
+    this.updateActiveHighlight();
 
     return {
       total: this.matches.length,
@@ -91,10 +92,11 @@ class JsSearch {
       }
     }
 
-    // 收集 input/textarea 的可见值
+    // 收集 input/textarea 的可见值，排除搜索框自身
     const inputs = this.document.querySelectorAll('input, textarea');
     for (const input of inputs) {
       if (!this.isVisible(input)) continue;
+      if (input.closest('#electron-search-box')) continue;
       const value = input.value || input.textContent || '';
       let inputMatchCount = 0;
       let inputMatch;
@@ -157,7 +159,8 @@ class JsSearch {
       const middle = node.splitText(start);
       const span = this.document.createElement('span');
       span.className = this.highlightClass;
-      span.style.backgroundColor = '#ff9632';
+      // 默认非当前匹配使用淡色，当前匹配在 updateActiveHighlight 中设为亮色
+      span.style.backgroundColor = '#ffb74d';
       span.style.color = '#000';
       middle.parentNode.replaceChild(span, middle);
       span.appendChild(middle);
@@ -165,6 +168,18 @@ class JsSearch {
     } catch (err) {
       // 复杂 DOM 结构下可能失败，跳过该匹配
       return null;
+    }
+  }
+
+  /**
+   * 更新当前激活匹配项的高亮颜色
+   */
+  updateActiveHighlight() {
+    for (let i = 0; i < this.matches.length; i++) {
+      const match = this.matches[i];
+      if (match.element) {
+        match.element.style.backgroundColor = (i + 1 === this.current) ? '#ff5722' : '#ffb74d';
+      }
     }
   }
 
@@ -176,12 +191,14 @@ class JsSearch {
   next() {
     if (this.matches.length === 0) return;
     this.current = this.current >= this.matches.length ? 1 : this.current + 1;
+    this.updateActiveHighlight();
     this.scrollToCurrent();
   }
 
   previous() {
     if (this.matches.length === 0) return;
     this.current = this.current <= 1 ? this.matches.length : this.current - 1;
+    this.updateActiveHighlight();
     this.scrollToCurrent();
   }
 

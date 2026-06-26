@@ -123,7 +123,21 @@ class SearchBox {
   }
 
   bindEvents() {
-    this.input.addEventListener('input', () => this.onInput());
+    this.isComposing = false;
+
+    this.input.addEventListener('compositionstart', () => {
+      this.isComposing = true;
+    });
+
+    this.input.addEventListener('compositionend', () => {
+      this.isComposing = false;
+      this.onInput();
+    });
+
+    this.input.addEventListener('input', () => {
+      if (!this.isComposing) this.onInput();
+    });
+
     this.input.addEventListener('keydown', (e) => this.onKeyDown(e));
 
     this.element.addEventListener('click', (e) => {
@@ -168,7 +182,15 @@ class SearchBox {
       return;
     }
 
+    // 搜索前临时清空输入框，避免搜索框自身内容被计入结果
+    const originalValue = this.input.value;
+    this.input.value = '';
+
     const result = await this.controller.find(text);
+
+    // 恢复输入框内容
+    this.input.value = originalValue;
+
     if (!result.valid) {
       this.showError(result.message);
       this.updateCount(0, 0);
