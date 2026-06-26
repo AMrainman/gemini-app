@@ -248,7 +248,8 @@ class SearchBox {
 
   show() {
     this.render();
-    document.body.appendChild(this.element);
+    const parent = document.body || document.documentElement;
+    parent.appendChild(this.element);
     this.visible = true;
 
     const selection = window.getSelection().toString();

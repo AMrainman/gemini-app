@@ -18,9 +18,28 @@ function initSearch(ipc) {
   const themeDetector = new ThemeDetector();
   const searchBox = new SearchBox(controller, options, themeDetector);
 
+  // 主进程快捷键触发的入口
   ipc.onToggle(() => {
     searchBox.toggle();
   });
+
+  // 兜底：在渲染进程捕获快捷键（capture phase，优先于页面 JS 处理）
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'f' && (event.metaKey || event.ctrlKey) && !event.repeat) {
+        event.preventDefault();
+        event.stopPropagation();
+        searchBox.toggle();
+      }
+      if (event.key === 'Escape' && searchBox.visible) {
+        event.preventDefault();
+        event.stopPropagation();
+        searchBox.hide();
+      }
+    },
+    true
+  );
 }
 
 module.exports = { initSearch };
