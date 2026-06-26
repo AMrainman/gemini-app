@@ -1,7 +1,6 @@
-console.log('[preload] preload.js loaded');
-
 const { contextBridge, ipcRenderer } = require('electron');
-const { initSearch } = require('./search/index');
+const path = require('path');
+const { initSearch } = require(path.join(__dirname, 'search', 'index'));
 
 /**
  * 包装 IPC 监听，去除事件对象，只把数据传给回调
@@ -11,19 +10,18 @@ function on(channel, callback) {
   ipcRenderer.on(channel, wrapped);
 }
 
-contextBridge.exposeInMainWorld('electronSearch', {
+const searchIpc = {
   find: (text, options) => ipcRenderer.invoke('search:find', { text, options }),
   stop: () => ipcRenderer.send('search:stop'),
   navigate: (direction) => ipcRenderer.send('search:navigate', direction),
   onFound: (callback) => on('search:found', callback),
   onToggle: (callback) => on('search:toggle', callback),
-});
+};
 
-console.log('[preload] electronSearch exposed');
+contextBridge.exposeInMainWorld('electronSearch', searchIpc);
 
 function init() {
-  console.log('[preload] DOM ready, initializing search');
-  initSearch();
+  initSearch(searchIpc);
 }
 
 if (document.readyState === 'loading') {

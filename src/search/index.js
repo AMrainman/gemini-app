@@ -7,26 +7,18 @@ const { SearchController } = require('./search-controller');
 const { SearchOptions } = require('./search-options');
 const { ThemeDetector } = require('./theme-detector');
 
-function initSearch() {
-  console.log('[search] initSearch called');
-  if (typeof window === 'undefined' || !window.electronSearch) {
-    console.warn('electronSearch API 未暴露，跳过搜索初始化');
+function initSearch(ipc) {
+  if (!ipc) {
+    console.warn('未传入 IPC 对象，跳过搜索初始化');
     return;
   }
 
   const options = new SearchOptions();
-  const controller = new SearchController(
-    window.electronSearch,
-    options,
-    document,
-    window
-  );
+  const controller = new SearchController(ipc, options, document, window);
   const themeDetector = new ThemeDetector();
   const searchBox = new SearchBox(controller, options, themeDetector);
 
-  console.log('[search] registering onToggle');
-  window.electronSearch.onToggle(() => {
-    console.log('[search] toggle received');
+  ipc.onToggle(() => {
     searchBox.toggle();
   });
 }

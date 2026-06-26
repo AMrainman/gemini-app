@@ -222,6 +222,7 @@ if (!gotTheLock) {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        sandbox: false,
         preload: path.join(__dirname, 'src', 'preload.js'),
       },
     });
@@ -229,9 +230,8 @@ if (!gotTheLock) {
     // 移除默认菜单栏，彻底禁止 Alt 键唤出菜单
     mainWindow.setMenu(null);
 
-    // 注册窗口内快捷键：Ctrl+R 刷新页面，拦截 Command+W / Ctrl+W 防止关闭窗口
+    // 注册窗口内快捷键：Ctrl+R 刷新页面，Ctrl/Cmd+F 打开搜索，拦截 Command+W / Ctrl+W 防止关闭窗口
     mainWindow.webContents.on('before-input-event', (event, input) => {
-      console.log('[main] before-input-event:', input.key, { control: input.control, meta: input.meta, shift: input.shift });
       if (input.key === 'r' && (input.control || input.meta)) {
         mainWindow.webContents.reload();
         event.preventDefault();
@@ -244,7 +244,6 @@ if (!gotTheLock) {
         event.preventDefault();
       }
       if (input.key === 'f' && (input.control || input.meta)) {
-        console.log('[main] sending search:toggle');
         mainWindow.webContents.send('search:toggle');
         event.preventDefault();
       }

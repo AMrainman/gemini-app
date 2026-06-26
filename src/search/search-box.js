@@ -25,31 +25,72 @@ class SearchBox {
     container.className = 'electron-search-box';
     container.style.cssText = this.baseStyles();
 
-    container.innerHTML = `
-      <input class="electron-search-input" type="text" placeholder="搜索">
-      <span class="electron-search-count">0/0</span>
-      <button class="electron-search-btn" data-action="prev" title="上一个 (↑)">↑</button>
-      <button class="electron-search-btn" data-action="next" title="下一个 (Enter)">↓</button>
-      <button class="electron-search-btn" data-action="options" title="选项">⚙</button>
-      <button class="electron-search-btn" data-action="close" title="关闭 (Esc)">✕</button>
-      <div class="electron-search-options" style="display:none">
-        <label><input type="checkbox" data-option="caseSensitive"> 区分大小写</label>
-        <label><input type="checkbox" data-option="wholeWord"> 全字匹配</label>
-        <label><input type="checkbox" data-option="regex"> 正则表达式</label>
-      </div>
-      <div class="electron-search-error" style="display:none"></div>
-    `;
+    // 使用 DOM API 创建元素，避免触发页面的 Trusted Types CSP
+    const input = document.createElement('input');
+    input.className = 'electron-search-input';
+    input.type = 'text';
+    input.placeholder = '搜索';
+    container.appendChild(input);
+    this.input = input;
+
+    const countLabel = document.createElement('span');
+    countLabel.className = 'electron-search-count';
+    countLabel.textContent = '0/0';
+    container.appendChild(countLabel);
+    this.countLabel = countLabel;
+
+    const prevBtn = this.createButton('prev', '上一个 (↑)', '↑');
+    container.appendChild(prevBtn);
+
+    const nextBtn = this.createButton('next', '下一个 (Enter)', '↓');
+    container.appendChild(nextBtn);
+
+    const optionsBtn = this.createButton('options', '选项', '⚙');
+    container.appendChild(optionsBtn);
+
+    const closeBtn = this.createButton('close', '关闭 (Esc)', '✕');
+    container.appendChild(closeBtn);
+
+    const optionsPanel = document.createElement('div');
+    optionsPanel.className = 'electron-search-options';
+    optionsPanel.style.display = 'none';
+    optionsPanel.appendChild(this.createCheckboxOption('caseSensitive', '区分大小写'));
+    optionsPanel.appendChild(this.createCheckboxOption('wholeWord', '全字匹配'));
+    optionsPanel.appendChild(this.createCheckboxOption('regex', '正则表达式'));
+    container.appendChild(optionsPanel);
+    this.optionsPanel = optionsPanel;
+
+    const errorLabel = document.createElement('div');
+    errorLabel.className = 'electron-search-error';
+    errorLabel.style.display = 'none';
+    container.appendChild(errorLabel);
+    this.errorLabel = errorLabel;
 
     this.element = container;
-    this.input = container.querySelector('.electron-search-input');
-    this.countLabel = container.querySelector('.electron-search-count');
-    this.optionsPanel = container.querySelector('.electron-search-options');
-    this.errorLabel = container.querySelector('.electron-search-error');
 
     this.bindEvents();
     this.applyTheme();
 
     return container;
+  }
+
+  createButton(action, title, text) {
+    const button = document.createElement('button');
+    button.className = 'electron-search-btn';
+    button.dataset.action = action;
+    button.title = title;
+    button.textContent = text;
+    return button;
+  }
+
+  createCheckboxOption(option, labelText) {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.option = option;
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(` ${labelText}`));
+    return label;
   }
 
   baseStyles() {
@@ -198,7 +239,6 @@ class SearchBox {
   }
 
   toggle() {
-    console.log('[search-box] toggle called, visible:', this.visible);
     if (this.visible) {
       this.hide();
     } else {
@@ -207,7 +247,6 @@ class SearchBox {
   }
 
   show() {
-    console.log('[search-box] show called');
     this.render();
     document.body.appendChild(this.element);
     this.visible = true;
