@@ -239,7 +239,9 @@ class SearchBox {
   }
 
   toggle() {
-    if (this.visible) {
+    // 页面可能已把搜索框从 DOM 中移除，不能仅凭 this.visible 判断
+    const isInDom = this.element && this.element.parentNode && this.element.parentNode.isConnected;
+    if (isInDom) {
       this.hide();
     } else {
       this.show();

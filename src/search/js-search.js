@@ -112,28 +112,39 @@ class JsSearch {
     return matches;
   }
 
-  collectTextNodes() {
+  /**
+   * 递归收集文本节点，包括 shadow DOM
+   */
+  collectTextNodes(root = this.document.body) {
     const nodes = [];
-    const walker = this.document.createTreeWalker(
-      this.document.body,
-      this.window.NodeFilter.SHOW_TEXT,
-      {
-        acceptNode: (node) => {
-          const parent = node.parentElement;
-          if (!parent) return this.window.NodeFilter.FILTER_REJECT;
-          if (parent.closest('#electron-search-box')) return this.window.NodeFilter.FILTER_REJECT;
-          if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(parent.tagName)) {
-            return this.window.NodeFilter.FILTER_REJECT;
-          }
-          return this.window.NodeFilter.FILTER_ACCEPT;
-        },
-      }
-    );
-
-    while (walker.nextNode()) {
-      nodes.push(walker.currentNode);
-    }
+    this.walkForText(root, nodes);
     return nodes;
+  }
+
+  walkForText(node, nodes) {
+    if (!node) return;
+
+    if (node.nodeType === this.window.Node.TEXT_NODE) {
+      const parent = node.parentElement;
+      if (!parent) return;
+      if (parent.closest('#electron-search-box')) return;
+      if (['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(parent.tagName)) return;
+      nodes.push(node);
+      return;
+    }
+
+    if (node.nodeType !== this.window.Node.ELEMENT_NODE && node.nodeType !== this.window.Node.DOCUMENT_FRAGMENT_NODE) {
+      return;
+    }
+
+    // 进入 shadow root
+    if (node.shadowRoot) {
+      this.walkForText(node.shadowRoot, nodes);
+    }
+
+    for (const child of node.childNodes) {
+      this.walkForText(child, nodes);
+    }
   }
 
   /**
@@ -184,7 +195,23 @@ class JsSearch {
   }
 
   clear() {
-    const spans = this.document.querySelectorAll(`.${this.highlightClass}`);
+    this.clearHighlightsInRoot(this.document.body);
+
+    // 清理 input 标记（input 不会在 shadow DOM 内常见，统一用 document 查询）
+    const inputs = this.document.querySelectorAll('[data-electron-search-match]');
+    for (const input of inputs) {
+      delete input.dataset.electronSearchMatch;
+    }
+
+    this.matches = [];
+    this.current = 0;
+  }
+
+  clearHighlightsInRoot(root) {
+    if (!root) return;
+
+    // 当前 root 内的高亮
+    const spans = root.querySelectorAll(`.${this.highlightClass}`);
     for (const span of spans) {
       const parent = span.parentNode;
       if (!parent) continue;
@@ -194,13 +221,13 @@ class JsSearch {
       parent.removeChild(span);
     }
 
-    const inputs = this.document.querySelectorAll('[data-electron-search-match]');
-    for (const input of inputs) {
-      delete input.dataset.electronSearchMatch;
+    // 递归进入 shadow root
+    const hosts = root.querySelectorAll('*');
+    for (const host of hosts) {
+      if (host.shadowRoot) {
+        this.clearHighlightsInRoot(host.shadowRoot);
+      }
     }
-
-    this.matches = [];
-    this.current = 0;
   }
 }
 
