@@ -16,6 +16,7 @@ class NativeSearch {
     this.current = 0;
     this.total = 0;
 
+    console.log('[native-search] invoking IPC find, text:', text);
     return this.ipc.invoke('search:find', {
       text,
       options: {
@@ -23,6 +24,12 @@ class NativeSearch {
         findNext: false,
         matchCase: options.caseSensitive || false,
       },
+    }).then((result) => {
+      console.log('[native-search] IPC result:', result);
+      return result;
+    }).catch((err) => {
+      console.error('[native-search] IPC error:', err);
+      return { matches: 0, activeMatchOrdinal: 0 };
     });
   }
 

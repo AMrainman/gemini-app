@@ -287,11 +287,13 @@ if (!gotTheLock) {
 
     // 注册搜索 IPC
     ipcMain.handle('search:find', async (event, { text, options }) => {
+      console.log('[main] search:find received, text:', text, 'options:', options);
       if (!mainWindow || mainWindow.isDestroyed()) {
         return { matches: 0, activeMatchOrdinal: 0 };
       }
       return new Promise((resolve) => {
         const onFound = (event, result) => {
+          console.log('[main] found-in-page result:', result);
           mainWindow.webContents.off('found-in-page', onFound);
           resolve(result);
         };

@@ -154,12 +154,14 @@ class SearchBox {
   }
 
   onInput() {
+    console.log('[search-box] onInput, value:', this.input?.value);
     if (this.throttleTimer) clearTimeout(this.throttleTimer);
     this.throttleTimer = setTimeout(() => this.search(), 100);
   }
 
   async search() {
     const text = this.input.value;
+    console.log('[search-box] search called, text:', text, 'length:', text.length);
     this.hideError();
 
     if (!text) {
@@ -169,6 +171,7 @@ class SearchBox {
     }
 
     const result = await this.controller.find(text);
+    console.log('[search-box] search result:', result);
     if (!result.valid) {
       this.showError(result.message);
       this.updateCount(0, 0);
