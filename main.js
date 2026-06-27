@@ -5,7 +5,7 @@ const os = require('os');
 
 let mainWindow;
 let searchWindow;
-const appUrls = ['https://gemini.google.com/app', 'https://chatgpt.com/'];
+const appUrls = ['https://gemini.google.com/app', 'https://claude.ai/'];
 const defaultAppUrl = 'https://gemini.google.com/app';
 
 function isSupportedAppUrl(url) {
