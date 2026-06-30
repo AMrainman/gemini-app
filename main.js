@@ -2,6 +2,7 @@ const { app, BrowserWindow, globalShortcut, session, shell, ipcMain } = require(
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { isAuthUrl } = require('./src/auth-url');
 
 let mainWindow;
 let searchWindow;
@@ -258,8 +259,13 @@ if (!gotTheLock) {
       cacheAppUrl(url);
     });
 
-    // 拦截页面内 target="_blank" 或 window.open() 的链接，在系统默认浏览器中打开
+    // 拦截页面内 target="_blank" 或 window.open() 的链接
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+      if (isAuthUrl(url)) {
+        // 登录/OAuth 弹窗必须在应用内完成，否则抛到外部 Chrome 会丢失 session/state
+        createAuthWindow(url);
+        return { action: 'deny' };
+      }
       shell.openExternal(url);
       return { action: 'deny' };
     });
@@ -278,6 +284,57 @@ if (!gotTheLock) {
     mainWindow.once('ready-to-show', () => {
       mainWindow.maximize();
       mainWindow.show();
+    });
+  }
+
+  /**
+   * 创建授权登录弹窗，确保 OAuth 流程在当前 Electron session 内完成。
+   * 授权完成后（导航到非 auth 的 chatgpt.com 页面）自动关闭并刷新主窗口。
+   */
+  function createAuthWindow(url) {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+
+    const authWindow = new BrowserWindow({
+      width: 520,
+      height: 720,
+      parent: mainWindow,
+      modal: process.platform !== 'darwin',
+      autoHideMenuBar: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        sandbox: false,
+      },
+    });
+
+    authWindow.setMenu(null);
+    authWindow.loadURL(url);
+
+    function maybeFinishLogin(navigationUrl) {
+      if (
+        typeof navigationUrl === 'string' &&
+        navigationUrl.startsWith('https://chatgpt.com/') &&
+        !isAuthUrl(navigationUrl)
+      ) {
+        if (!authWindow.isDestroyed()) {
+          authWindow.close();
+        }
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.reload();
+        }
+      }
+    }
+
+    authWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+      maybeFinishLogin(navigationUrl);
+    });
+
+    authWindow.webContents.on('did-navigate', (event, navigationUrl) => {
+      maybeFinishLogin(navigationUrl);
+    });
+
+    authWindow.webContents.on('will-redirect', (event, navigationUrl) => {
+      maybeFinishLogin(navigationUrl);
     });
   }
 
