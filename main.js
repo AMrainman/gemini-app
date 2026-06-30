@@ -252,26 +252,30 @@ if (!gotTheLock) {
     });
 
     mainWindow.webContents.on('did-navigate', (event, url) => {
-      cacheAppUrl(url);
+      if (!isAuthUrl(url)) cacheAppUrl(url);
     });
 
     mainWindow.webContents.on('did-navigate-in-page', (event, url) => {
-      cacheAppUrl(url);
+      if (!isAuthUrl(url)) cacheAppUrl(url);
     });
 
     // 拦截页面内 target="_blank" 或 window.open() 的链接
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
       if (isAuthUrl(url)) {
-        // 登录/OAuth 弹窗必须在应用内完成，否则抛到外部 Chrome 会丢失 session/state
-        createAuthWindow(url);
+        // 登录/OAuth 流程在主窗口完成，避免弹窗与主窗口之间的 state/opener 通信问题
+        mainWindow.loadURL(url);
         return { action: 'deny' };
       }
       shell.openExternal(url);
       return { action: 'deny' };
     });
 
-    // 拦截页面内普通导航：非应用 URL 用外部浏览器打开，禁止在应用内跳转
+    // 拦截页面内普通导航：非应用 URL 且非授权 URL 用外部浏览器打开
     mainWindow.webContents.on('will-navigate', (event, url) => {
+      if (isAuthUrl(url)) {
+        // 授权回调允许在主窗口内导航
+        return;
+      }
       if (!isSupportedAppUrl(url)) {
         event.preventDefault();
         shell.openExternal(url);
@@ -284,57 +288,6 @@ if (!gotTheLock) {
     mainWindow.once('ready-to-show', () => {
       mainWindow.maximize();
       mainWindow.show();
-    });
-  }
-
-  /**
-   * 创建授权登录弹窗，确保 OAuth 流程在当前 Electron session 内完成。
-   * 授权完成后（导航到非 auth 的 chatgpt.com 页面）自动关闭并刷新主窗口。
-   */
-  function createAuthWindow(url) {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-
-    const authWindow = new BrowserWindow({
-      width: 520,
-      height: 720,
-      parent: mainWindow,
-      modal: process.platform !== 'darwin',
-      autoHideMenuBar: true,
-      webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        sandbox: false,
-      },
-    });
-
-    authWindow.setMenu(null);
-    authWindow.loadURL(url);
-
-    function maybeFinishLogin(navigationUrl) {
-      if (
-        typeof navigationUrl === 'string' &&
-        navigationUrl.startsWith('https://chatgpt.com/') &&
-        !isAuthUrl(navigationUrl)
-      ) {
-        if (!authWindow.isDestroyed()) {
-          authWindow.close();
-        }
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.reload();
-        }
-      }
-    }
-
-    authWindow.webContents.on('will-navigate', (event, navigationUrl) => {
-      maybeFinishLogin(navigationUrl);
-    });
-
-    authWindow.webContents.on('did-navigate', (event, navigationUrl) => {
-      maybeFinishLogin(navigationUrl);
-    });
-
-    authWindow.webContents.on('will-redirect', (event, navigationUrl) => {
-      maybeFinishLogin(navigationUrl);
     });
   }
 
